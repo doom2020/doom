@@ -365,7 +365,7 @@ def get_network_info(ssh):
 
 if __name__ == "__main__":
     logger = myLogger.LogHelper()
-    ssh=connect_host('10.114.181.177',22,'lenovo','lenovo1234')
+    ssh=connect_host('127.0.0.1',22,'root','123456')
     t1=threading.Thread(target=get_hostname,args=(ssh,))
     t2=threading.Thread(target=get_port_counts,args=(ssh,))
     t3=threading.Thread(target=get_cpu_info,args=(ssh,))
