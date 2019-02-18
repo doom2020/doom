@@ -4,6 +4,7 @@ Created on Fri Dec 14 15:29:44 2018
 
 @author: doom
 此模块用来模拟公司尾牙抽奖活动
+
 """
 
 
