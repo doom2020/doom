@@ -3,6 +3,8 @@ import re
 import requests
 import time
 import random
+from mysql_power import MysqlHelper
+from mongo_power import MyMongo
 
 class ProxyPool:
     def __init__(self, timeout_retry_count=3, code_abnormal_retry_count=3):
@@ -45,6 +47,7 @@ class ProxyPool:
             else:
                 print("代理{}是无效的".format(proxy))
             print("列表内共有{}个代理可用".format(len(self.proxy_list)))
+        return self.proxy_list
 
 
     def get_wuyou(self):
@@ -112,9 +115,7 @@ class ProxyPool:
             else:
                 resp.encoding = "utf-8"
                 page_html = resp.text
-                pattern = re.compile(
-                    '<tr>.*?<td data-title="IP">(.*?)</td>.*?<td.*?>(.*?)</td>.*?<td data-title="类型">(.*?)</td>.*?</tr>',
-                    re.S)
+                pattern = re.compile('<tr>.*?<td data-title="IP">(.*?)</td>.*?<td.*?>(.*?)</td>.*?<td data-title="类型">(.*?)</td>.*?</tr>', re.S)
                 result_list = re.findall(pattern, page_html)
                 print(result_list)
                 for result in result_list:
@@ -124,8 +125,19 @@ class ProxyPool:
                     print(proxy)
                     self.check_proxy_vaild(proxy)
 
+    def save_proxy2sql(self):
+        mysql_helper.create_database("proxy_pool")
+        create_table_sql_cmd = "create table proxies(id tinyint(5) unsigned primary key auto_increment,proxy varchar(160))character set utf8"
+        mysql_helper.create_table("proxy_pool", "proxies", create_table_sql_cmd)
+
+    def save_proxy2mongo(self):
+        pass
+
+    def save_proxy2redis(self):
+        pass
+
+
 if __name__ == "__main__":
     proxy_obj = ProxyPool()
-    proxy_obj.get_wuyou()
-    proxy_obj.get_xici()
+    mysql_helper = MysqlHelper()
     proxy_obj.get_kuai()
