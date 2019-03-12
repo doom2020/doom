@@ -22,11 +22,11 @@ from pdfminer.layout import LTTextBoxHorizontal, LAParams
 from pdfminer.pdfinterp import PDFTextExtractionNotAllowed
 
 # 原pdf文件的初始路径(需要根据自己文件路径更改)
-basic_pdf_file_path = r'C:\Users\Administrator\Desktop\pdf_download'
+basic_pdf_file_path = r'C:\Users\Administrator\Desktop\pdf_new'
 # 获取所有的pdf文件
 pdf_files = glob.glob("{}/*.pdf".format(basic_pdf_file_path))
 # 解析后的txt文件初始路径(需要根据自己的文件路径更改)
-basic_txt1_file_path = r'C:\Users\Administrator\Desktop\pdf_to_txt'
+basic_txt1_file_path = r'C:\Users\Administrator\Desktop\txt_new'
 
 
 def parse_pdf2txt():
