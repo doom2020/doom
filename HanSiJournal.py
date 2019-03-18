@@ -8,7 +8,6 @@ comment:if you update my code ,please update comment as too,thanks
 
 """
 import csv
-
 import requests
 import re
 from selenium import webdriver
@@ -22,6 +21,7 @@ import hashlib
 import multiprocessing
 from proxy_pool import ProxyPool
 import threading
+from lxml import etree
 
 
 class HanSiJournal:
@@ -66,7 +66,7 @@ class HanSiJournal:
             self.encode_type = "utf-8"
             self.sleep_min = 1
             self.sleep_max = 4
-            self.detail_basic_url = "http:"
+            self.detail_basic_url = "https:"
             self.classify = "Advances_in_Psychology"
             self.img_basic_url = "http:"
             self.img_save_basic_path = r"C:\Users\Administrator\Desktop\email_image"
@@ -82,18 +82,18 @@ class HanSiJournal:
         def create_many_process(self):
             retry_count = HanSiJournal.retry_count
             p_lock = multiprocessing.Lock()
-            for page_num in range(self.begin_page_num, self.end_page_num+1):
+            for page_num in range(self.begin_page_num + 17, self.end_page_num+1):
                 url = self.basic_url + str(page_num)
                 p = multiprocessing.Process(target=self.get_page_url, args=(url, p_lock, retry_count, page_num))
                 p.start()
                 p.join()
             print("所有进程完成")
 
-        def create_many_threading(self, result_list, p_lock, page_num):
+        def create_many_threading(self, valid_list, p_lock, page_num):
             t_lock = threading.Lock()
-            for result in result_list:
-                # url = self.detail_basic_url + result
-                url = result
+            for result in valid_list:
+                url = self.detail_basic_url + result
+                # url = result
                 t = threading.Thread(target=self.get_detail_info, args=(url, p_lock, t_lock, page_num))
                 t.start()
                 t.join()
@@ -118,14 +118,16 @@ class HanSiJournal:
             else:
                 resp.encoding = self.encode_type
                 page_html = resp.text
-                print(page_html)
-                pattern = re.compile('<a href="(.*?)".*?HTML,</a>', re.S)
-                result_list = re.findall(pattern, page_html)
-                # print(result_list)
-                # print(len(result_list))
+                # print(page_html)
+                html = etree.HTML(page_html)
+                result_list = html.xpath('//*[@id="ctl00_ContentPlaceHolder1_zxwz"]/div//ul/li[5]/a[3]/@href')
+                valid_list = []
+                for i in result_list:
+                    if i[-4:] == ".htm":
+                        valid_list.append(i)
                 print("get_page_url 函数执行完成")
                 # return result_list
-                self.create_many_threading(result_list, p_lock, page_num)
+                self.create_many_threading(valid_list, p_lock, page_num)
 
         def get_detail_info(self, url, p_lock, t_lock, page_num):
             print("当前线程pid:{},ppid{}".format(os.getpid(), os.getppid()))
@@ -153,7 +155,7 @@ class HanSiJournal:
             driver.execute_script(js1)
             js2 = "var q=document.documentElement.scrollTop=100"
             driver.execute_script(js2)
-            time.sleep(4)
+            time.sleep(6)
             page_html = driver.page_source
             # print(page_html)
             time.sleep(1)
@@ -184,14 +186,6 @@ class HanSiJournal:
                     print("个人信息:", one_info)
                     src_email = one_info[-1]
                     self.get_img(src_email, title, author, position, p_lock, t_lock, page_num)
-                    # print("函数的返回值email:", email)
-                    # if email:
-                    #     print("有返回值email:", email)
-                    #     info = [self.classify, title, author, position, email]
-                    #     # if author and "@" in email:
-                    #     self.info_save2csv(info, p_lock, t_lock, page_num)
-                    # else:
-                    #     print("没有返回值")
             else:
                 try:
                     author = result_title_author_position_ls[0][1].split("<")[0].strip()
@@ -205,17 +199,12 @@ class HanSiJournal:
                     print("个人信息:", one_info)
                     src_email = one_info[-1]
                     self.get_img(src_email, title, author, position, p_lock, t_lock, page_num)
-                    # print("函数的返回值email:", email)
-                    # if email:
-                    #     print("有返回值email:", email)
-                    #     info = [self.classify, title, author, position, email]
-                    #     # if author and "@" in email:
-                    #     self.info_save2csv(info, p_lock, t_lock, page_num)
-                    # else:
-                    #     print("没有返回值")
 
         def get_img(self, src_image, title, author, position, p_lock, t_lock, page_num):
-            url = self.img_basic_url + src_image
+            if src_image[:4] == "http":
+                url = src_image
+            else:
+                url = self.img_basic_url + src_image
             # url = src_image
             resp = requests.get(url, headers=self.headers, proxies=self.proxies)
             resp.encoding = self.encode_type
@@ -265,15 +254,23 @@ class HanSiJournal:
                     return False
 
         def info_save2csv(self, info, p_lock, t_lock, page_num):
-            file_name = str(page_num) + self.csv_type
+            file_name = self.classify + str(page_num) + self.csv_type
             csv_file = os.path.join(self.csv_save_basic_path, file_name)
             print("上进程锁")
             p_lock.acquire()
             print("上线程锁")
             t_lock.acquire()
-            with open(csv_file, "a", newline="", encoding="gbk") as fw:
-                writer = csv.writer(fw)
-                writer.writerow(info)
+            try:
+                with open(csv_file, "a", newline="", encoding="gbk", errors='ignore') as fw:
+                    writer = csv.writer(fw)
+                    writer.writerow(info)
+            except Exception as e:
+                print(e)
+                print("此条数据插入失败")
+                print("释放线程锁")
+                t_lock.release()
+                print("释放进程锁")
+                p_lock.release()
             self.line_count += 1
             print("当前已写入了{}条有效数据".format(self.line_count))
             print("文件写入成功啦")
