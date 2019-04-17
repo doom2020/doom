@@ -1,99 +1,93 @@
 from django.db import models
+import datetime
 
 # Create your models here.
-USER_STATUS = (
-    (1, "有效"),
-    (0, "无效"),
-)
-GOODS_STATUS = (
-    (1, "上架"),
-    (0, "下架"),
-)
-ORDER_STATUS = (
-    (1, "已提交"),
-    (2, "正在处理"),
-    (3, "已取消"),
-    (4, "已完成"),
-)
-#用户表
+
+class UserInfoManager(models.Manager):
+    def get_queryset(self):
+        return super(UserInfoManager, self).get_queryset().filter(isdelete=False)
+
+
+# 用户表
 class UserInfo(models.Model):
-    uname = models.CharField(max_length=50, verbose_name="用户昵称")
-    upwd = models.CharField(max_length=60, verbose_name="用户密码")
-    uphone = models.CharField(max_length=60, verbose_name="用户手机")
-    uemail = models.EmailField(max_length=60, null=True, verbose_name="用户邮箱")
-    upicture = models.ImageField(null=True, upload_to="static/image/user", verbose_name="用户头像")
-    is_vaild = models.BooleanField(choices=USER_STATUS, default=1, verbose_name="有效用户")
+    user_obj = UserInfoManager()
+    uname = models.CharField(max_length=25, verbose_name='用户姓名', null=False)
+    upwd = models.CharField(max_length=60, verbose_name='用户密码', null=False)
+    uphone = models.CharField(max_length=25, verbose_name='用户手机', null=False)
+    uemail = models.EmailField(verbose_name='用户邮箱', null=False)
+    isdelete = models.BooleanField(default=False, verbose_name='删除用户')
+
     def __str__(self):
         return self.uname
-    class Meta:
-        db_table = 'userinfo'
-        verbose_name = '用户信息'
-        verbose_name_plural = verbose_name
-        ordering = ['id']
 
-#地址表
-class Address(models.Model):
-    take_name = models.CharField(max_length=50, verbose_name="取件人")
-    take_phone = models.CharField(max_length=100, verbose_name="取件人电话")
-    address_name = models.CharField(max_length=200, verbose_name="收货地址")
-    userinfo = models.ForeignKey(UserInfo, on_delete=True, null=True, verbose_name="买主")
+    class Meta:
+        db_table = "userinfo"
+        verbose_name = "userinfo"
+        verbose_name_plural = verbose_name
+        ordering = ["id"]
+
+    @classmethod
+    def create_user(cls, uname, upwd, uphone, uemail, isdelete=False):
+        new_user = cls(uname=uname, upwd=upwd, uphone=uphone, uemail=uemail, isdelete=isdelete)
+        return new_user
+
+
+class PDFInfoManager(models.Manager):
+    def get_query(self):
+        return super(PDFInfoManager, self).get_queryset().filter(isdelete=False)
+
+
+class PDFInfo(models.Model):
+    pdf_obj = PDFInfoManager()
+    title = models.CharField(max_length=100, verbose_name='期刊标题', null=False)
+    author = models.CharField(max_length=50, verbose_name='作者姓名', null=False)
+    position = models.CharField(max_length=250, verbose_name='作者职位', null=True)
+    email = models.EmailField(verbose_name='联系邮箱', null=False)
+    file_name = models.CharField(max_length=60, verbose_name='文件名', null=True)
+    # data_time = models.DateTimeField(auto_created=True, default="time", verbose_name='创建时间')
+    # isdelete = models.BooleanField(default=False, verbose_name='删除数据')
 
     def __str__(self):
-        return self.address_name
-    class Meta:
-        db_table = "address"
-        verbose_name = "收件人信息"
-        verbose_name_plural = verbose_name
-        ordering = ['id']
+        return self.title
 
-#购物车表
-class ShoppingCar(models.Model):
-    userinfo = models.OneToOneField(UserInfo, on_delete=True, verbose_name="购物车主人", null=True)
+    class Meta:
+        db_table = "pdfinfo"
+        verbose_name = "pdfinfo"
+        verbose_name_plural = verbose_name
+        ordering = ["id"]
+
+    @classmethod
+    def create_data(cls, title, author, position, email, file_name, data_time, isdelete=False):
+        new_pdf = cls(title=title, author=author, position=position, email=email, file_name=file_name, data_time=data_time, isdelete=isdelete)
+        return new_pdf
+
+
+class JournalInfoManager(models.Manager):
+    def get_query(self):
+        return super(JournalInfoManager, self).get_queryset().all()
+
+
+class JournalInfo(models.Model):
+    journal_obj = JournalInfoManager()
+    classify = models.CharField(max_length=100, verbose_name="期刊类型", null=False)
+    title = models.CharField(max_length=100, verbose_name='期刊标题', null=False)
+    author = models.CharField(max_length=50, verbose_name='作者姓名', null=False)
+    position = models.CharField(max_length=250, verbose_name='作者职位', null=True)
+    email = models.EmailField(verbose_name='联系邮箱', null=False)
+    # data_time = models.DateTimeField(auto_created=True, default="time", verbose_name='创建时间')
+    # isdelete = models.BooleanField(default=False, verbose_name='删除数据')
 
     def __str__(self):
-        return self.userinfo.uname
-    class Meta:
-        db_table = "shoppingcar"
-        verbose_name = "购物车信息"
-        verbose_name_plural = verbose_name
+        return self.title
 
-#订单表
-class Order(models.Model):
-    sum_money = models.DecimalField(verbose_name="订单总额", max_digits=10, decimal_places=2)
-    userinfo = models.ForeignKey(UserInfo, on_delete=True, verbose_name="下订单用户", null=True)
-    order_status = models.CharField(max_length=50, choices=ORDER_STATUS, default=1, verbose_name="订单状态")
+    class Meta:
+        db_table = "journalinfo"
+        verbose_name = "journalinfo"
+        verbose_name_plural = verbose_name
+        ordering = ["id"]
 
-    def __str__(self):
-        return self.userinfo.uname
-    class Meta:
-        db_table = "order"
-        verbose_name = "订单信息"
-        verbose_name_plural = verbose_name
-        ordering = ["sum_money"]
-
-#商品类型表
-class GoodsType(models.Model):
-    gtype_name = models.CharField(max_length=50, verbose_name="商品类型名称")
-    def __str__(self):
-        return self.gtype_name
-    class Meta:
-        db_table = "goodstype"
-        verbose_name = "商品类型"
-        verbose_name_plural = verbose_name
-        ordering = ["gtype_name"]
-#商品表
-class Goods(models.Model):
-    gname = models.CharField(max_length=50, verbose_name="商品名称")
-    gprice = models.DecimalField(verbose_name="商品价格", max_digits=7, decimal_places=2)
-    gpicture = models.ImageField(verbose_name="商品图片", upload_to="static/image/goods")
-    g_vaild = models.BooleanField(verbose_name="是否上架", choices=GOODS_STATUS, default=1)
-    shopping_car = models.ForeignKey(ShoppingCar, on_delete=True, null=True, verbose_name="商品的购物车")
-    g_type = models.ForeignKey(GoodsType, on_delete=True, null=True, verbose_name="商品类型")
-    def __str__(self):
-        return self.gname
-    class Meta:
-        db_table = "goods"
-        verbose_name = "商品信息"
-        verbose_name_plural = verbose_name
-        ordering = ["gprice"]
+    @classmethod
+    def create_data(cls, classify, title, author, position, email, data_time, isdelete=False):
+        new_journal = cls(classify=classify, title=title, author=author, position=position, email=email, data_time=data_time, isdelete=isdelete)
+        return new_journal
 

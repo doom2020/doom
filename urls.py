@@ -1,21 +1,16 @@
 from django.urls import path
-
-from .views import *
+from firm.views import *
 
 urlpatterns = [
-    path('', main_views, name='main'),
-    path('firm_show/', firm_show_views, name='firm_show'),
-    path('cooperation/', cooperation_views, name='cooperation'),
-    path('employment/', employment_views, name='employment'),
-    path('contact-me', contact_me_views, name='contact'),
-    path('login/', login_views, name='login'),
-    path('logout/', logout_views, name='logout'),
+    path('', index_views, name='index'),
     path('register/', register_views, name='register'),
-    path('goods_detail/<int:gtype>/<int:page>', goods_detail_views, name='goods_detail'),
-    path('goods_detail_one/<str:goods_name>', goods_detail_one_views, name='goods_detail_one'),
-    path('order/', order_views, name='order'),
-    path('user_info/', user_info_views, name='user_info'),
+    path('login/', login_views, name='login'),
+    path('upload/', upload_views, name='upload'),
+    path('logout/', logout_views, name='logout'),
     path('check_register/', check_register_views, name='check_register'),
-    path('add_address/', add_address_views, name='add_address'),
-    path('update_shopping_car/', update_shopping_car_views, name='update_shopping_car'),
+    path('code_create/', code_create_views, name='code_create'),
+    path('pdf_to_txt/', pdf_to_txt_views, name='pdf2txt'),
+    path('txt_to_csv/', txt_to_csv_views, name='txt2csv'),
+    path('query_data/<int:page_num>', query_data_views, name='query_data'),
+    path('feedback/', feedback_views, name='feedback'),
 ]
