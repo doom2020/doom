@@ -47,9 +47,9 @@ class ScientificResearchJournal:
         self.encode_type = "utf-8"
         self.request_page_type = "https"
         self.request_image_type = "http"
-        self.img_save_basic_path = r"G:\scientific_research\email_img_update"
+        self.img_save_basic_path = r"G:\scientific_research\email_img_update3"
         self.img_type = ".png"
-        self.csv_save_basic_path = r"G:\scientific_research\csv_file_update"
+        self.csv_save_basic_path = r"G:\scientific_research\csv_file_update3"
         self.csv_type = ".csv"
         self.file_name = os.path.join(self.csv_save_basic_path, ("scientific_research" + self.csv_type))
         self.line_count = 0
@@ -110,13 +110,18 @@ class ScientificResearchJournal:
             print("title number:{},href number:{},{}".format(title_count, href_count, "title_count != href_count" if title_count != href_count else "title_count == href_count"))
 
     def create_process_pool(self, journal_name_href_list, journal_name_title_list):
+        logger_help = LogHelper()
+        logger_help.writeLog(journal_name_title_list, level="info")
+        logger_help.writeLog(journal_name_href_list, level="info")
         p = multiprocessing.Pool()
         for href, title in zip(journal_name_href_list, journal_name_title_list):
             tuple_one = (href, title)
             p.apply_async(func=self.get_second_page, args=(tuple_one, self.retry_count), callback=self.save2csv)
+            logger_help.writeLog("the current journal name>>>{},href>>>{}".format(title, href), level="info")
             time.sleep(random.randint(self.create_process_min_time, self.create_process_max_time))
         p.close()
         p.join()
+        logger_help.removeLog()
 
     def get_second_page(self, tuple_one, retry_count):
         journal_name = tuple_one[1].strip()
@@ -231,20 +236,25 @@ class ScientificResearchJournal:
         if not author_list:
             return False
         author_ls = "".join(author_list).split(",")
-        # 此处两种情况：图片邮箱，或者a标签邮箱(只获取图片邮箱(占大多数))
-        email_src_ls = re.findall(r'<p class="cs_address">.*?<img src="(.*?)"', page_html)
-        if email_src_ls:
-            flag = 0
-            for i in email_src_ls:
-                if "x1" in i:
-                    email_src = i
-                    self.get_img(email_src, journal_name, title, author_ls, retry_count)
-                    flag = 1
-                    break
-            if flag == 0:
-                return False
+        # 此处两种情况：图片邮箱，或者a标签邮箱
+        email_re_ls = re.findall(r"[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[\w](?:[\w-]*[\w])?", page_html)
+        if email_re_ls:
+            email_ls = list(set(email_re_ls))
+            self.sort_info2(email_ls, journal_name, title, author_ls)
         else:
-            return False
+            email_src_ls = re.findall(r'<p class="cs_address">.*?<img src="(.*?)"', page_html)
+            if email_src_ls:
+                flag = 0
+                for i in email_src_ls:
+                    if "x1" in i:
+                        email_src = i
+                        self.get_img(email_src, journal_name, title, author_ls, retry_count)
+                        flag = 1
+                        break
+                if flag == 0:
+                    return False
+            else:
+                return False
 
     def get_img(self, email_src, journal_name, title, author_ls, retry_count):
         if email_src[:4] == "http":
@@ -287,6 +297,7 @@ class ScientificResearchJournal:
         flag = 0
         for i in range(1, self.method_count + 1):
             result = eval('self.img_to_text{}(file, journal_name, title, author_ls)'.format(i))
+            print("IS OK?>>>>", bool(result))
             if result:
                 flag = i
                 print("the{}method recognize success".format(flag))
@@ -406,6 +417,52 @@ class ScientificResearchJournal:
                             author_ls = author_ls.copy()
                             break
 
+    def sort_info2(self, email_ls, journal_name, title, author_ls):
+        count_e = len(email_ls)
+        if count_e == 1:
+            email = email_ls[0]
+            index_e = email.find("@")
+            au = email[index_e-3:index_e]
+            flag = 0
+            for a in author_ls:
+                if au.upper() in a.upper():
+                    author = a.replace("‘", "").replace("’", "").replace("“", "").replace("”", "").replace("1", "").replace("2", "").replace("*", "").strip()
+                    one_info = [journal_name, title, author, email]
+                    print("one_info:{}".format(one_info))
+                    self.info_list.append(one_info)
+                    self.info_count += 1
+                    print("current has{} data".format(self.info_count))
+                    flag = 1
+                    break
+            if flag == 0:
+                author = author_ls[0].replace("‘", "").replace("’", "").replace("“", "").replace("”", "").replace("1", "").replace("2", "").replace("*", "").strip()
+                one_info = [journal_name, title, author, email]
+                print("one_info:{}".format(one_info))
+                self.info_list.append(one_info)
+                self.info_count += 1
+                print("current has{} data".format(self.info_count))
+        elif count_e > 1:
+            for a in author_ls:
+                if len(a) < 3:
+                    author_ls.remove(a)
+                    author_ls = author_ls.copy()
+            for e in email_ls:
+                index_e = e.find("@")
+                au = e[index_e-3:index_e]
+                for a in author_ls:
+                    if au.upper() in a.upper():
+                        author = a.replace("‘", "").replace("’", "").replace("“", "").replace("”", "").replace("1", "").replace("2", "").replace("*", "").strip()
+                        email = e
+                        one_info = [journal_name, title, author, email]
+                        print("one_info:{}".format(one_info))
+                        self.info_list.append(one_info)
+                        self.info_count += 1
+                        print("current has{} data".format(self.info_count))
+                        author_ls.remove(a)
+                        author_ls = author_ls.copy()
+                        break
+
+
     def save2csv(self, info_list):
         print("start writer the data")
         print("data：{}".format(info_list))
@@ -423,5 +480,5 @@ if __name__ == "__main__":
     journal.get_journal_name_page()
     print("此次爬虫任务已完成")
     time_end = time.time()
-    summary_use_time = (time_end - time_begin) / 60*60
+    summary_use_time = (time_end - time_begin) / (60*60)
     print("总共时长:{:.2f}小时".format(summary_use_time))
