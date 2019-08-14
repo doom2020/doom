@@ -93,6 +93,7 @@ class HanSiJournal:
             for result in result_list:
                 # url = self.detail_basic_url + result
                 url = result
+                print(url)
                 t = threading.Thread(target=self.get_detail_info, args=(url, p_lock, t_lock, page_num))
                 t.start()
                 t.join()
