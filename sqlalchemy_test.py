@@ -5,18 +5,18 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-host = 'tj1-ai-stag-db-i1-00.kscn'
+host = ''
 port = 3306
 user = 'root'
-password = '69e8d4d3e71227fc9e466267ec6e6a81'
-database = 'spt_indicators'
-engine = create_engine("mysql+pymysql://root:69e8d4d3e71227fc9e466267ec6e6a81@tj1-ai-stag-db-i1-00.kscn:3306/spt_indicators")
+password = ''
+database = ''
+engine = create_engine("")
 
 def get_query(time_tuple):
 	# engine.dispose()
 	conn = engine.connect()
 	print(conn)
-	sql_cmd = "SELECT * FROM `wakeup_key_indicators` WHERE app_id=4 and res_date BETWEEN '%s' AND '%s';" % (time_tuple[0], time_tuple[-1])
+	sql_cmd = "SELECT * FROM `` WHERE app_id=4 and res_date BETWEEN '%s' AND '%s';" % (time_tuple[0], time_tuple[-1])
 	result_ls = conn.execute(sql_cmd).fetchall()
 	print("子进程: %s, 查询结果条数: %s" % (os.getpid(), len(result_ls)))
 
